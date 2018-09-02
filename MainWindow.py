@@ -149,8 +149,7 @@ class MainWindow(QMainWindow):
                     self.changeMode(MODE.NEWSING)
 
         elif self.current_mode == MODE.NEWSING:
-            print("dhukci")
-            if command in ["binkright", "headright"]:
+            if command in ["blinkright", "headright"]:
                 self.document.scrollDown()
             elif command in ["blinkleft", "headleft"]:
                 self.document.scrollUp()
