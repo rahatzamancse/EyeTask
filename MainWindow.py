@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMainWindow, QStatusBar
 from PyQt5.uic import loadUi
 
 from Resources.ResourceKeyboard import ResourceKeyboard
+from Browser import Browser
 from WheelChair import WheelChair
 from inputs.Controller import Controller
 
@@ -21,6 +22,7 @@ class MODE(IntEnum):
     SMS = auto()
     EMAIL = auto()
     KEYBOARD = auto()
+    BROWSER = auto()
 
 
 class METHOD(IntEnum):
@@ -141,6 +143,15 @@ class MainWindow(QMainWindow):
             elif command in ["blinkboth"]:
                 self.document.Close()
                 self.changeMode(MODE.NEWS)
+                
+        elif self.current_mode == MODE.BROWSER:
+            if command in ["blinkright","headright"]:
+                self.browser.scrollDown()
+            elif command in ["blinkleft","headleft"]:
+                self.browser.scrollUp()
+            elif command in ["blinkboth"]:
+                self.browser.Close()
+                self.changeMode(MODE.MAIN)
 
         elif self.current_mode is MODE.KEYBOARD:
             if self.selectMethodComboBox.currentIndex() == METHOD.EYE_HELP:
@@ -342,7 +353,8 @@ class MainWindow(QMainWindow):
         self.sendSms("This is an emergency, please contack me!!!")
 
     def playBrowser(self):
-        pass
+        self.changeMode(MODE.BROWSER)
+        self.browser = Browser("https://iitestudent.blogspot.com/2012/05/8086-memory-banks.html")
 
     def changeMode(self, mode):
         self.current_mode = mode
