@@ -72,6 +72,21 @@ class ResourceKeyboard(QMainWindow):
                           '8': ['t', 'u', 'v'],
                           '9': ['w', 'x', 'y', 'z']}
 
+    def moveFocusInitial(self):
+        self.prevFocus = self.currentFocus
+        self.currentFocus = 10
+
+        for floatButtons in self.floatButtons[self.buttons[self.prevFocus]]:
+            floatButtons.setStyleSheet("background-color: black")
+            floatButtons.setVisible(False)
+
+        for floatButtons in self.floatButtons[self.buttons[self.currentFocus]]:
+            floatButtons.setVisible(True)
+
+        self.currentFloat = 0
+        self.buttons[self.prevFocus].setStyleSheet("background-color: black")
+        self.buttons[self.currentFocus].setStyleSheet("background-color: blue")
+
     def moveFocusRight(self):
 
         self.prevFocus = self.currentFocus
@@ -161,6 +176,8 @@ class ResourceKeyboard(QMainWindow):
             else:
                 pyautogui.press(self.floatKeys[self.keys[self.currentFocus]][self.currentFloat - 1])
 
+            self.moveFocusInitial()  
+            self.currentFocus = 10
             return False
 
         else:
