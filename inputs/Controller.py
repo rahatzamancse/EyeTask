@@ -25,7 +25,7 @@ class Controller:
         # self.speech_detector = Speech()
         self.giveOutput = giveOutput
         self.main_window = main_window
-        self.cap = cv2.VideoCapture(2)
+        self.cap = cv2.VideoCapture(0)
 
     def getInput(self):
         dicBlink = None
