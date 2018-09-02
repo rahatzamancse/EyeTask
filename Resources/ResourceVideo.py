@@ -8,7 +8,7 @@ class ResourceVideo:
         self.process = None
     
     def playVideo(self,VideoName):
-       file = "C:\\Users\\prant\\Desktop\\Final\\EyeTask\\VideoFiles" + VideoName
+       file = "C:\\Users\\prant\\Desktop\\Final\\EyeTask\\VideoFiles\\" + VideoName
        self.process = subprocess.Popen(["C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe", file])
     
     def pause(self):

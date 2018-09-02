@@ -1,4 +1,4 @@
-from enum import IntEnum, auto
+from enum import IntEnum
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QMainWindow, QStatusBar
@@ -9,6 +9,15 @@ from Browser import Browser
 from WheelChair import WheelChair
 from inputs.Controller import Controller
 
+try:
+  from enum import auto
+except ImportError: 
+  __my_enum_auto_id = 0
+  def auto() -> int:
+    global __my_enum_auto_id
+    i = __my_enum_auto_id
+    __my_enum_auto_id += 1
+    return i
 
 class MODE(IntEnum):
     CHAIR = auto()
@@ -52,7 +61,8 @@ class MainWindow(QMainWindow):
         self.resetButton.clicked.connect(self.resetAll)
 
         self.chair = WheelChair()
-
+        self.chairSpeedSlider.sliderReleased.connect(self.setSpeed)
+        
         self.keyboard = None
         self.msg = ""
 
@@ -70,8 +80,11 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.main_controller.getInput)
         self.timer.start(100)
 
+    def setSpeed(self):
+        val = int(self.chairSpeedSlider.value())
+        self.chair.setSpeed(val)
+
     def gotInput(self, command):
-        print("Got input : " + str(command))
 
         if command == "not initialized":
             self.statusBar.showMessage("Please Initialize First")
@@ -94,10 +107,10 @@ class MainWindow(QMainWindow):
                 self.chair.left()
             elif command in ["gazeright", "headright"]:
                 self.chair.right()
+            elif command in ["gazecenter", "headcenter"]:
+                self.chair.start()
             elif command in ["blinkboth"]:
-                self.chair.toggleStartStop()
-            elif command in ["blinkleft", "blinkright"]:
-                self.chair.active = False
+                self.chair.stop()
                 self.changeMode(MODE.MAIN)
 
         elif self.current_mode == MODE.AUDIO:
@@ -136,6 +149,7 @@ class MainWindow(QMainWindow):
                     self.changeMode(MODE.NEWSING)
 
         elif self.current_mode == MODE.NEWSING:
+            print("dhukci")
             if command in ["binkright", "headright"]:
                 self.document.scrollDown()
             elif command in ["blinkleft", "headleft"]:
@@ -220,7 +234,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         # self.main_controller.closed()
         # self.deleteLater()
-        pass
+        self.chair.stop()
+        self.chair.active = False
 
     def sendSms(self, msg):
         from zeep import Client
@@ -242,7 +257,9 @@ class MainWindow(QMainWindow):
             print(e)
 
     def resetAll(self):
-        pass
+        self.chair.stop()
+        self.chair.active = False
+        
 
     def __initialize_buttons(self):
         self.selectMethodComboBox.clear()

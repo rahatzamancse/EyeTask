@@ -3,43 +3,33 @@ from socket import *
 
 class WheelChair:
     def __init__(self):
-        host = "192.168.43.5"  # set to IP address of target computer
+        host = "192.168.0.14"  # set to IP address of target computer
         port = 13000
         self.addr = (host, port)
         self.socket = socket(AF_INET, SOCK_DGRAM)
         self.active = False
-        self.forward = False
         self.fan = False
         self.light = False
 
     def start(self):
-        if self.active:
-            print("WheelChair : start")
-            self.socket.sendto(bytes('start'.encode()), self.addr)
-            self.forward = True
-        else:
-            print("WheelChair is not active")
+        print("WheelChair : start")
+        self.socket.sendto(bytes('start'.encode()), self.addr)
+        self.active = True
 
     def stop(self):
-        if self.active:
-            print("WheelChair : stop")
-            self.socket.sendto(bytes('stop'.encode()), self.addr)
-            self.forward = False
-        else:
-            print("WheelChair is not active")
+        print("WheelChair : stop")
+        self.socket.sendto(bytes('stop'.encode()), self.addr)
+        self.active = False
 
     def toggleStartStop(self):
         if self.active:
-            if self.forward:
-                print("WheelChair : stop")
-                self.socket.sendto(bytes('stop'.encode()), self.addr)
-                self.forward = False
-            else:
-                print("WheelChair : start")
-                self.socket.sendto(bytes('start'.encode()), self.addr)
-                self.forward = True
+            print("WheelChair : stop")
+            self.socket.sendto(bytes('stop'.encode()), self.addr)
+            self.active = False
         else:
-            print("WheelChair is not active")
+            print("WheelChair : start")
+            self.socket.sendto(bytes('start'.encode()), self.addr)
+            self.active = True
 
     def left(self):
         if self.active:
@@ -72,5 +62,7 @@ class WheelChair:
             self.socket.sendto(bytes('lightOn'.encode()), self.addr)
 
     def emergencyStop(self):
-        self.forward = False
-        self.socket.sendto(bytes('stop'.encode()), self.addr)
+        self.stop()
+
+    def setSpeed(self, val):
+        self.socket.sendto(bytes(('set ' + str(val)).encode()), self.addr)
