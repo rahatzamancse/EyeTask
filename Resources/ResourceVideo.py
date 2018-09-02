@@ -8,8 +8,8 @@ class ResourceVideo:
         self.process = None
     
     def playVideo(self,VideoName):
-       file = "F:\\1Study\\projects\\EyeTask-V1.0\\VideoFiles\\" + VideoName
-       self.process = subprocess.Popen(["E:\\1installed\\KMPlayer\\KMPlayer.exe", file])
+       file = "C:\\Users\\prant\\Desktop\\Final\\EyeTask\\VideoFiles" + VideoName
+       self.process = subprocess.Popen(["C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe", file])
     
     def pause(self):
         pyautogui.press('space')
