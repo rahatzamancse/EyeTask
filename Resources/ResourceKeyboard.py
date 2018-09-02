@@ -176,8 +176,7 @@ class ResourceKeyboard(QMainWindow):
             else:
                 pyautogui.press(self.floatKeys[self.keys[self.currentFocus]][self.currentFloat - 1])
 
-            self.moveFocusInitial()  
-            self.currentFocus = 10
+            self.moveFocusInitial()
             return False
 
         else:
