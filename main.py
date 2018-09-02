@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QApplication
 from MainWindow import MainWindow
 
 
-
 def main():
     app = QApplication(sys.argv)
     main_window = MainWindow()

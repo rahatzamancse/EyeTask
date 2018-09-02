@@ -1,207 +1,236 @@
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from threading import Thread
+from enum import IntEnum, auto
 
-import cv2
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QMainWindow, QStatusBar
 from PyQt5.uic import loadUi
-from zeep import Client
 
-from Speach import Speach
+from Resources.ResourceKeyboard import ResourceKeyboard
 from WheelChair import WheelChair
-from image_processors.BlinkDetector import BlinkDetector
-from image_processors.FaceDetector import FaceDetector
-from image_processors.GazeDetector import GazeDetector
+
+from inputs.Controller import Controller
+from Resources.ResourceKeyboard import ResourceKeyboard
+
+class MODE(IntEnum):
+    CHAIR = auto()
+    MAIN = auto()
+    SUBPROC = auto()
+    AUDIO = auto()
+    VIDEO = auto()
+    NEWS = auto()
+    PLAYING = auto()
+    NEWSING = auto()
+    SMS = auto()
+    EMAIL = auto()
+    KEYBOARD = auto()
+
+
+class METHOD(IntEnum):
+    EYE_HELP = 0
+    HEAD_HELP = 1
+    VOICE_HELP = 2
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
+        WINDOW_TITLE = "Eye Based Wheelchair Control & Task Manager"
+        GUI_UI_LOCATION = "./UI/MainWindow.ui"
+
         super(MainWindow, self).__init__()
-        loadUi("./ui/MainWindow.ui", self)
-        self.setWindowTitle("Eye Based Wheelchair Control & Task Manager")
+        loadUi(GUI_UI_LOCATION, self)
+
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.showMessage("Welcome")
+
+        self.setWindowTitle(WINDOW_TITLE)
+        self.main_image_label.setScaledContents(True)
+        self.gaze_image_label.setScaledContents(True)
+        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        # self.b = QtGui.QPushButton("exit", self, clicked=self.close)
+
         self.resetButton.clicked.connect(self.resetAll)
-
-        self.faceDetector = FaceDetector()
-
-        self.currentFocus = 0
-        self.__initialize_buttons()
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.updateFrame)
-        self.soundThread = None
 
         self.chair = WheelChair()
 
-        self.current_subprecess = None
+        self.keyboard = None
+        self.msg = ""
 
-        # mode 0 = not controlling wheel chair; controlling menu with eye-blink
-        # mode 1 = controling wheel chair with eye-gaze and eye-blink
-        # mode 2 = Speech mode
-        # mode 3 = Face mode
-        # mode 4 = Face mode wheel chair
-        self.current_mode = 0
+        self.current_mode = MODE.MAIN
+        self.current_focus = 0
 
-        self.cap = cv2.VideoCapture(0)
+        self.__initialize_buttons()
 
-        self.gazeDetector = GazeDetector()
+        self.player = None
+        self.document = None
 
-        self.blinkDetector = BlinkDetector()
+        self.main_controller = Controller(self, self.gotInput)
 
-        self.speech = Speach()
-        self.initialize_speech()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.main_controller.getInput)
+        self.timer.start(100)
 
-        self.timer.start(10)
+    def gotInput(self, command):
+        print("Got input : " + str(command))
 
-        self.main_image_label.setScaledContents(True)
+        if command == "not initialized":
+            self.statusBar.showMessage("Please Initialize First")
+            return
+
+        if self.current_mode == MODE.MAIN:
+            if command in ["blinkleft", "headleft"]:
+                self.moveFocusLeft()
+            elif command in ["blinkright", "headright"]:
+                self.moveFocusRight()
+            elif command in ["headup"]:
+                self.moveFocusUp()
+            elif command in ["headdown"]:
+                self.moveFocusDown()
+            elif command in ["blinkboth"]:
+                self.pressFocused()
+
+        elif self.current_mode == MODE.CHAIR:
+            if command in ["gazeleft", "headleft"]:
+                self.chair.left()
+            elif command in ["gazeright", "headright"]:
+                self.chair.right()
+            elif command in ["blinkboth"]:
+                self.chair.toggleStartStop()
+            elif command in ["blinkleft", "blinkright"]:
+                self.chair.active = False
+                self.changeMode(MODE.MAIN)
+
+        elif self.current_mode == MODE.AUDIO:
+            if command in ["blinkright", "headright"]:
+                self.player.nextItem()
+            elif command in ["blinkleft", "headleft"]:
+                self.statusBar.showMessage("Select an option...")
+                if self.player.playing:
+                    self.player.stop()
+                else:
+                    self.player.Close()
+                    self.changeMode(MODE.MAIN)
+            elif command == "blinkboth":
+                self.player.togglePlay()
+                
+        elif self.current_mode == MODE.VIDEO:
+            if command in ["blinkright","headright"]:
+                self.player.nextItem()
+            elif command in ["blinkleft","headleft"]:
+                if self.player.resourceVideo.process != None:
+                    self.player.stop()
+                else:
+                    self.player.Close()
+                    self.changeMode(MODE.MAIN)
+            elif command in ["blinkboth"]:
+                self.player.togglePlay()
+
+        elif self.current_mode == MODE.NEWS:
+            if command in ["blinkright","headdown"]:
+                self.document.nextItem()
+            elif command in ["blinkleft","headleft"]:
+                self.document.destroy()
+                self.changeMode(MODE.MAIN)
+            elif command in ["blinkboth"]:
+                if self.document.Open():
+                    self.changeMode(MODE.NEWSING)
+
+        elif self.current_mode == MODE.NEWSING:
+            if command in ["binkright","headright"]:
+                self.document.scrollDown()
+            elif command in ["blinkleft","headleft"]:
+                self.document.scrollUp()
+            elif command in ["blinkboth"]:
+                self.document.Close()
+                self.changeMode(MODE.NEWS)
+
+        elif self.current_mode is MODE.KEYBOARD:
+            if self.selectMethodComboBox.currentIndex() == METHOD.EYE_HELP:
+                if command in ["blinkright"]:
+                    self.keyboard.moveFocusRight()
+                elif command in ["blinkleft"]:
+                    self.keyboard.moveFocusLeft()
+                if command in ["gazeright"]:
+                    self.keyboard.moveFloatRight()
+                elif command in ["gazeleft"]:
+                    self.keyboard.moveFloatLeft()
+
+            elif self.selectMethodComboBox.currentIndex() == METHOD.HEAD_HELP:
+                if command in ["headright"]:
+                    self.keyboard.moveFocusRight()
+                elif command in ["headleft"]:
+                    self.keyboard.moveFocusLeft()
+                if command in ["blinkright"]:
+                    self.keyboard.moveFloatRight()
+                elif command in ["blinkleft"]:
+                    self.keyboard.moveFloatLeft()
+
+            if command in ["blinkboth"]:
+                if self.keyboard.selectKey():
+                    self.msg = self.keyboard.str
+                    nxtMode = self.keyboard.fortask
+                    self.keyboard = None
+                    if nxtMode == "sms":
+                        self.changeMode(MODE.SMS)
+                    elif nxtMode == "email":
+                        self.changeMode(MODE.EMAIL)
+
+
+        elif self.current_mode == MODE.SMS:
+            from zeep import Client
+            try:
+                url = 'https://api2.onnorokomsms.com/sendsms.asmx?WSDL'
+                client = Client(url)
+                userName = '01521313223'
+                password = '90053'
+                recipientNumber = '01521323429'
+                smsText = self.msg
+                smsType = 'TEXT'
+                maskName = ''
+                campaignName = ''
+                client.service.OneToOne(userName, password, recipientNumber, smsText, smsType, maskName,
+                                        campaignName)
+                self.statusBar.showMessage("SMS sent!!")
+            except Exception as e:
+                self.statusBar.showMessage("SMS not sent!!")
+                print(e)
+
+            self.changeMode(MODE.MAIN)
+            
+        elif self.current_mode == MODE.EMAIL:
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+            import smtplib
+            try:
+                fromaddr = 'eyegaze.kuet@gmail.com'
+                toaddr = 'sakibreza1@gmail.com'
+                msg = MIMEMultipart()
+                msg['From'] = fromaddr
+                msg['To'] = toaddr
+                msg['Subject'] = 'Doctor Appointment'
+    
+                body = self.msg
+                msg.attach(MIMEText(body, 'plain'))
+    
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(fromaddr, '060701cse')
+                text = msg.as_string()
+                server.sendmail(fromaddr, toaddr, text)
+                self.statusBar.showMessage("Email sent")
+                server.quit()
+            except Exception as e:
+                self.statusBar.showMessage("Email not sent")
+                print(e)
+                
+            self.changeMode(MODE.MAIN)
+
+    def closeEvent(self, event):
+        # self.main_controller.closed()
+        # self.deleteLater()
+        pass
 
     def resetAll(self):
-        self.current_mode = 0
-        self.chair.stop()
-        self.chair.is_going = False
-        self.gazeDetector.reset()
-        self.blinkDetector.reset()
-
-    def updateFrame(self):
-        #print(self.current_mode)
-	
-        info = {}
-        if self.current_mode == 0 or self.current_mode == 1 or self.current_mode == 3 or self.current_mode == 4:
-            _, img = self.cap.read()
-            blink_dict = self.blinkDetector.run_blink_detector(img, self.eyeThreshold.value())
-            if self.current_mode != 4 or self.current_mode != 2:
-                outImage = toQImage(blink_dict["image"])
-                outImage = outImage.rgbSwapped()
-                self.main_image_label.setPixmap(QPixmap.fromImage(outImage))
-            info["left"] = blink_dict["leftTotal"]
-            info["right"] = blink_dict["rightTotal"]
-            info["both"] = blink_dict["bothTotal"]
-            info["rightEAR"] = blink_dict["rightEAR"]
-            info["leftEAR"] = blink_dict["leftEAR"]
-            info["avgEAR"] = (blink_dict["rightEAR"] + blink_dict["leftEAR"]) / 2
-            flag = 0
-            if blink_dict["both"]:
-                if self.current_subprecess is not None:
-                    self.current_subprecess.terminate()
-                    self.current_subprecess = None
-                    flag = 1
-            if self.current_subprecess is not None:
-                return
-            if self.current_mode is 0:
-                if blink_dict["left"]:
-                    self.moveFocusLeft()
-                if blink_dict["right"]:
-                    self.moveFocusRight()
-                if blink_dict["both"] and flag == 0:
-                    self.pressFocused()
-
-            elif self.current_mode is 1:
-                gazeDict = self.gazeDetector.get_processed_image(img)
-                info["dir"] = gazeDict["direction"]
-                if gazeDict["direction"] == "left":
-                    self.chair.left()
-                if gazeDict["direction"] == "right":
-                    self.chair.right()
-                if gazeDict["direction"] == "center":
-                    self.chair.start()
-
-                if blink_dict["left"] or blink_dict["right"]:
-                    self.chair.toggleStartStop()
-
-                elif blink_dict["both"]:
-                    self.chair.stop()
-                    self.chair.is_going = False
-                    self.current_mode = 0
-                    self.gazeDetector.closeAll()
-
-            elif self.current_mode == 3:
-                faceDict = self.faceDetector.get_processed_image(img)
-                if blink_dict["right"]:
-                    self.faceDetector.initPos(faceDict["face"])
-
-                if blink_dict["both"] and flag == 0:
-                    self.pressFocused()
-
-                if faceDict["direction"] == "right":
-                    self.moveFocusRight()
-                if faceDict["direction"] == "left":
-                    self.moveFocusLeft()
-                if faceDict["direction"] == "up":
-                    self.moveFocusUp()
-                if faceDict["direction"] == "down":
-                    self.moveFocusDown()
-
-            elif self.current_mode == 4:
-                self.chair.is_going = True
-                faceDict = self.faceDetector.get_processed_image(img)
-                self.main_image_label.setText("Chair wheel Mode"
-                                              "\n\n Press right eye to initialize"
-                                              "\n\n Press both eye for exit")
-                if blink_dict["both"]:
-                    self.chair.stop()
-                    self.chair.is_going = False
-                    self.current_mode = 3
-
-                if faceDict["direction"] == "right":
-                    self.chair.right()
-                elif faceDict["direction"] == "left":
-                    self.chair.left()
-                elif faceDict["direction"] == "up":
-                    self.chair.start()
-                elif faceDict["direction"] == "down":
-                    self.chair.stop()
-                elif faceDict["direction"] == "center":
-                     self.chair.stop()
-
-        elif self.current_mode == 2:
-            if self.soundThread is None or not self.soundThread.is_alive():
-                self.soundThread = Thread(target=self.speech.recognize_speech_from_mic)
-                self.soundThread.start()
-                print("Started Listening")
-            self.main_image_label.setText("Listening")
-
-        self.updateImageInfo(info)
-
-    def updateImageInfo(self, dict):
-        val = ""
-        for key, value in dict.items():
-            val = val + "\n" + str(key) + " : " + str(value)
-
-        self.image_info_textlabel.setText(val)
-
-    def initialize_speech(self):
-        self.speech.commands["video"].append(self.playVideo)
-        self.speech.commands["music"].append(self.playMusic)
-        self.speech.commands["SMS"].append(self.playSMS)
-        self.speech.commands["message"].append(self.playEmail)
-        self.speech.commands["light"].append(self.playLight)
-        self.speech.commands["ceiling fan"].append(self.playFan)
-        self.speech.commands["news"].append(self.playBrowser)
-
-        self.speech.commands["start"].append(self.chair.start)
-        self.speech.commands["stop"].append(self.chair.stop)
-        self.speech.commands["right"].append(self.chair.right)
-        self.speech.commands["left"].append(self.chair.left)
-
-        self.speech.commands["close"].append(self.stopCurrentSubprocess)
-
-
-    def stopCurrentSubprocess(self):
-        if self.current_subprecess is not None:
-            self.current_subprecess.terminate()
-
-    def comboboxIndexChanged(self):
-        if self.selectMethodComboBox.currentIndex() == 0:
-            self.current_mode = 0
-        elif self.selectMethodComboBox.currentIndex() == 1:
-            self.current_mode = 3
-            self.chair.is_going = False
-        elif self.selectMethodComboBox.currentIndex() == 2:
-            self.current_mode = 2
-            self.chair.is_going = True
-        if self.selectMethodComboBox.currentIndex() != 2:
-            self.soundThread = None
+        pass
 
     def __initialize_buttons(self):
         self.selectMethodComboBox.clear()
@@ -210,7 +239,7 @@ class MainWindow(QMainWindow):
             "Head-Help",
             "Voice-Help"
         ])
-        self.selectMethodComboBox.setCurrentIndex(0)
+        self.selectMethodComboBox.setCurrentIndex(METHOD.EYE_HELP)
         self.selectMethodComboBox.currentIndexChanged.connect(self.comboboxIndexChanged)
 
         self.buttons = [self.b1_1, self.b1_2,
@@ -219,121 +248,106 @@ class MainWindow(QMainWindow):
                         self.b3_1, self.b3_2]
         for b in self.buttons:
             b.setAutoDefault(True)
-        self.buttons[self.currentFocus].setFocus(True)
+        self.buttons[self.current_focus].setFocus(True)
 
         self.b1_1.clicked.connect(self.controlWheel)
         self.b1_2.clicked.connect(self.playSMS)
         self.b1_3.clicked.connect(self.playEmail)
         self.b2_1.clicked.connect(self.playVideo)
         self.b2_2.clicked.connect(self.playMusic)
-        self.b2_3.clicked.connect(self.playBrowser)
+        self.b2_3.clicked.connect(self.playDocument)
         self.b3_1.clicked.connect(self.playLight)
         self.b3_2.clicked.connect(self.playFan)
 
-    def playSMS(self):
-        try:
-            url = 'https://api2.onnorokomsms.com/sendsms.asmx?WSDL'
-            client = Client(url)
-            userName = '01521313223'
-            password = '90053'
-            recipientNumber = '01521323429'
-            smsText = 'Help Me'
-            smsType = 'TEXT'
-            maskName = ''
-            campaignName = ''
-            client.service.OneToOne(userName, password, recipientNumber, smsText, smsType, maskName, campaignName)
-            print('SMS sent!')
-        except Exception as e:
-            print('SMS nor sent!')
-            print(e)
-
-    def controlWheel(self):
-        if self.current_mode == 3 or self.current_mode == 4:
-            self.current_mode = 4
-        else:
-            self.current_mode = 1
-
-    def playEmail(self):
-        try:
-            fromaddr = 'eyegaze.kuet@gmail.com'
-            toaddr = 'sakibreza1@gmail.com'
-            msg = MIMEMultipart()
-            msg['From'] = fromaddr
-            msg['To'] = toaddr
-            msg['Subject'] = 'Doctor Appointment'
-
-            body = 'I am facing problem.Please come to see me if you are free.'
-            msg.attach(MIMEText(body, 'plain'))
-
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(fromaddr, '060701cse')
-            text = msg.as_string()
-            server.sendmail(fromaddr, toaddr, text)
-            server.quit()
-            print('Email Sent Successfully')
-        except Exception as e:
-            print('Email not sent')
-            print(e)
-
-    def playFan(self):
-        print("playing Fan")
-        self.chair.playFan()
-
-    def playLight(self):
-        print("playing Light")
-        self.chair.playLight()
-
-    def playBrowser(self):
-        import webbrowser
-        webbrowser.open_new_tab("http://epaperna.prothomalo.com/")
-
-    def playMusic(self):
-        import os, random, subprocess
-        randomfile = random.choice(os.listdir("F:\\music\\"))
-        file = "F:\\music\\" + randomfile
-        self.current_subprecess = subprocess.Popen(["C:\Program Files\Windows Media Player\wmplayer.exe", file])
-
-    def playVideo(self):
-        import os, random, subprocess
-        randomfile = random.choice(os.listdir("F:\\video\\"))
-        file = "F:\\video\\" + randomfile
-        self.current_subprecess = subprocess.Popen(["C:\Program Files\Windows Media Player\wmplayer.exe", file])
+    def comboboxIndexChanged(self):
+        import cv2
+        cv2.destroyAllWindows()
+        # TODO
+        if self.selectMethodComboBox.currentIndex() == METHOD.EYE_HELP:
+            pass
+        elif self.selectMethodComboBox.currentIndex() == METHOD.HEAD_HELP:
+            pass
+        elif self.selectMethodComboBox.currentIndex() == METHOD.VOICE_HELP:
+            pass
 
     def moveFocusRight(self):
-        if self.current_subprecess is None and self.current_mode != 1 and self.current_mode != 4:
-            self.currentFocus = (self.currentFocus + 1) % 8
-            self.buttons[self.currentFocus].setFocus(True)
+        if self.current_mode is MODE.MAIN:
+            self.current_focus = (self.current_focus + 1) % 8
+            self.buttons[self.current_focus].setFocus(True)
 
     def moveFocusLeft(self):
-        if self.current_subprecess is None and self.current_mode != 1 and self.current_mode != 4:
-            self.currentFocus = (self.currentFocus - 1) % 8
-            self.buttons[self.currentFocus].setFocus(True)
+        self.current_focus = (self.current_focus - 1) % 8
+        self.buttons[self.current_focus].setFocus(True)
 
     def moveFocusUp(self):
-        if  self.current_subprecess is None and self.current_mode != 1 and self.current_mode != 4:
-            self.currentFocus = (self.currentFocus + 2) % 8
-            self.buttons[self.currentFocus].setFocus(True)
+        self.current_focus = (self.current_focus - 2) % 8
+        self.buttons[self.current_focus].setFocus(True)
 
     def moveFocusDown(self):
-        if  self.current_subprecess is None and self.current_mode != 1 and self.current_mode != 4:
-            self.currentFocus = (self.currentFocus - 2) % 8
-            self.buttons[self.currentFocus].setFocus(True)
+        self.current_focus = (self.current_focus + 2) % 8
+        self.buttons[self.current_focus].setFocus(True)
 
     def pressFocused(self):
-        if self.current_subprecess is None and self.current_mode != 1 and self.current_mode != 4:
-            self.buttons[self.currentFocus].animateClick()
+        self.buttons[self.current_focus].animateClick()
+        
+    def playFan(self):
+        self.chair.toggleFan()
+     
+    def controlWheel(self):
+        self.chair.active = True
+        self.changeMode(MODE.CHAIR)
 
+    def moveWindow(self, left, top):
+        from PyQt5 import QtWidgets
+        sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
+        height = sizeObject.height()
+        width = sizeObject.width()
+        self.move(int(width * left), int(height * top))
 
-def toQImage(raw_img):
-    from numpy import copy
-    img = copy(raw_img)
-    qformat = QImage.Format_Indexed8
-    if len(img.shape) == 3:
-        if img.shape[2] == 4:
-            qformat = QImage.Format_RGBA8888
-        else:
-            qformat = QImage.Format_RGB888
+    def playFan(self):
+        self.chair.toggleFan()
 
-    outImg = QImage(img.tobytes(), img.shape[1], img.shape[0], img.strides[0], qformat)
-    return outImg
+    def playLight(self):
+        self.chair.toggleLight()
+
+    def playMusic(self):
+        from Players.Audio import Audio
+        self.changeMode(MODE.AUDIO)
+        self.player = Audio()
+
+    def playVideo(self):
+        from Players.Video import Video
+        self.changeMode(MODE.VIDEO)
+        self.player = Video()
+
+    def playSMS(self):
+        self.keyboard = ResourceKeyboard("sms")
+        self.changeMode(MODE.KEYBOARD)
+
+    def playEmail(self):
+        
+        self.keyboard = ResourceKeyboard("email")
+        self.changeMode(MODE.KEYBOARD)
+
+    def playDocument(self):
+        from Document import Document
+        self.changeMode(MODE.NEWS)
+        self.document = Document()
+
+    def changeMode(self, mode):
+        self.current_mode = mode
+        if mode is MODE.KEYBOARD:
+            self.statusBar.showMessage("Please type what you want")
+        elif mode is MODE.SMS:
+            self.statusBar.showMessage("Sending sms")
+        elif mode is MODE.CHAIR:
+            self.statusBar.showMessage("Wheelchair control mode")
+        elif mode is MODE.NEWSING:
+            self.statusBar.showMessage("Reading PDF")
+        elif mode is MODE.AUDIO:
+            self.statusBar.showMessage("Playing Audio")
+        elif mode is MODE.SUBPROC:
+            self.statusBar.showMessage("In subprocess mode")
+        elif mode is MODE.MAIN:
+            self.statusBar.showMessage("Please Select an option")
+            self.gaze_image_label.setText("Not using Eye gaze")
