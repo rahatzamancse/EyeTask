@@ -26,12 +26,12 @@ class GazeDetector:
         self.predictor = dlib.shape_predictor(PREDICTOR_PATH)
         # cap = cv2.VideoCapture(0)
 
-
     def processImage(self, image):
 
         ret = {
             "direction": None,
             "img": None,
+            "gaze": None
         }
 
         # a = datetime.datetime.now()
@@ -73,7 +73,6 @@ class GazeDetector:
             roi2 = image[y:y + h, x:x + w]
             roi2 = imutils.resize(roi2, width=250, height=250, inter=cv2.INTER_CUBIC)
 
-
         if roi1 is not None:
             cv2.imwrite('temp_right.jpg', roi1)
             img = cv2.imread('temp_right.jpg')
@@ -82,6 +81,7 @@ class GazeDetector:
             classes_r81 = self.model_right.predict_classes(img)
             classes_r82 = self.model_right.predict(img)
             class_no = classes_r81.item(0)
+            ret["gazeleft"] = roi1
 
         if roi2 is not None:
             cv2.imwrite('temp_left.jpg', roi2)
@@ -91,55 +91,63 @@ class GazeDetector:
             classes_l81 = self.model_left.predict(img)
             classes_l82 = self.model_left.predict(img)
             class_no = classes_l81.item(0)
+            ret["gazeright"] = roi2
 
-        ret["img"] = roi1
+        ret["img"] = image
 
         if roi1 is not None or roi2 is not None:
-            self.percent(classes_l81, classes_r82, roi1, ret)
+            self.percent(classes_l81, classes_r82, ret)
 
         return ret
 
-    def percent(self, values_left, values_right, image, ret):
+    def percent(self, values_left, values_right, ret):
         x_l = values_left.item(0)
         y_l = values_left.item(1)
         z_l = values_left.item(2)
+        b_l = values_left.item(3)
 
         x_r = values_right.item(0)
         y_r = values_right.item(1)
         z_r = values_right.item(2)
+        b_r = values_right.item(3)
 
-        total_l = x_l + y_l + z_l
-        total_r = x_r + y_r + z_r
+        total_l = b_l + x_l + y_l + z_l
+        total_r = b_r + x_r + y_r + z_r
 
         x_l = float("{0:.2f}".format(x_l / total_l))
         y_l = float("{0:.2f}".format(y_l / total_l))
         z_l = float("{0:.2f}".format(z_l / total_l))
+        b_l = float("{0:.2f}".format(b_l / total_l))
 
         x_r = float("{0:.2f}".format(x_r / total_r))
         y_r = float("{0:.2f}".format(y_r / total_r))
         z_r = float("{0:.2f}".format(z_r / total_r))
+        b_r = float("{0:.2f}".format(b_r / total_r))
 
         x = (x_l + x_r) / 2
         y = (y_l + y_r) / 2
         z = (z_l + z_r) / 2
-        # print("Prob of Class 0 is : ", x, "\nProb of Class 1 is : ", y, "\nProb of Class 2 is : ", z)
+        b = (b_l + b_r) / 2
+        print("Prob of Class 0 is : ", x, "\nProb of Class 1 is : ", y, "\nProb of Class 2 is : ", z,
+              "\nProb of Class 3 is : ", b)
 
-        if (x >= 0.80):
-            cv2.putText(image, "LEFT", (15, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, 155, thickness=2)
-            ret["direction"] = "gazeleft"
-        elif (z >= 0.80):
-            cv2.putText(image, "RIGHT", (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, 130, thickness=2)
-            ret["direction"] = "gazeright"
-        elif (y >= 0.80):
-            cv2.putText(image, "Middle", (40, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, 255, thickness=2)
-            ret["direction"] = "gazecenter"
-
-    def reset(self):
-        self.init = [0, 0]
-        self.coordinate = [0, 0]
-        self.dir_c = 0
-        self.dir_l = 0
-        self.dir_r = 0
-
-    def closeAll(self):
-        cv2.destroyAllWindows()
+        if x >= 0.80:
+            cv2.putText(ret["img"], "Blink", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 155, thickness=3)
+            ret["blink"] = "both"
+        elif x_l >= 0.80 and x_r <= 0.50:
+            cv2.putText(ret["img"], "LEFT Blink", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
+            ret["blink"] = "left"
+        elif x_l <= 0.50 and x_r >= 0.80:
+            cv2.putText(ret["img"], "RIGHT Blink", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
+            ret["blink"] = "right"
+        else:
+            ret["blink"] = "none"
+        if y >= 0.80:
+            cv2.putText(ret["img"], "LEFT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
+            ret["gazedirection"] = "left"
+        elif z >= 0.80:
+            cv2.putText(ret["img"], "Middle", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 130, thickness=3)
+            ret["gazedirection"] = "center"
+        elif b >= 0.80:
+            cv2.putText(ret["img"], "RIGHT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
+            ret["gazedirection"] = "right"

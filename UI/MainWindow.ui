@@ -203,7 +203,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QLabel" name="image_info_textlabel">
+         <widget class="QLabel" name="left_gaze_label">
           <property name="minimumSize">
            <size>
             <width>270</width>
@@ -224,13 +224,13 @@
            </font>
           </property>
           <property name="text">
-           <string>Not initialized yet</string>
+           <string>Eye Gaze Left</string>
           </property>
           <property name="scaledContents">
            <bool>false</bool>
           </property>
           <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+           <set>Qt::AlignCenter</set>
           </property>
           <property name="margin">
            <number>19</number>
@@ -238,7 +238,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="gaze_image_label">
+         <widget class="QLabel" name="right_gaze_label">
           <property name="minimumSize">
            <size>
             <width>30</width>
@@ -246,7 +246,7 @@
            </size>
           </property>
           <property name="text">
-           <string>Eye Gaze not found</string>
+           <string>Eye Gaze Right</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>

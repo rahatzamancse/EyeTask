@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(WINDOW_TITLE)
         self.main_image_label.setScaledContents(True)
-        self.gaze_image_label.setScaledContents(True)
+        self.left_gaze_label.setScaledContents(True)
         # self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         # self.b = QtGui.QPushButton("exit", self, clicked=self.close)
 
