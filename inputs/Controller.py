@@ -4,7 +4,7 @@ from PyQt5.QtGui import QImage, QPixmap
 import MainWindow
 from inputs.BlinkDetector import BlinkDetector
 from inputs.FaceDetector import FaceDetector
-from inputs.GazeDetector import GazeDetector
+from inputs.GazeDetectorCnn import GazeDetector
 from inputs.Speech import Speech
 
 
@@ -78,6 +78,7 @@ class Controller:
             if dicGaze["img"] is not None:
                 self.gazeImg = dicGaze["img"]
                 self.gazeImg = toQImage(self.gazeImg)
+                self.gazeImg = self.gazeImg.rgbSwapped()
 
             if self.gazeImg is not None:
                 self.main_window.gaze_image_label.setPixmap(QPixmap.fromImage(self.gazeImg))
