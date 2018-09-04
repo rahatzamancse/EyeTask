@@ -9,10 +9,15 @@ from Resources.ResourcePdf import ResourcePdf
 
 class Document:
     def __init__(self):
+        self.currentItem = 1
+        self.resourcePdf = ResourcePdf()
+        self.list = QListView()
+        self.model = QStandardItemModel(self.list)
         self.isOpen = 0
         self.docLength = 0
         self.docList = []
         self.formats = ['*.pdf']
+        self.prevItem = self.docLength
         self.initUI()
 
     def destroy(self):
@@ -20,12 +25,9 @@ class Document:
         return -1
 
     def initUI(self):
-        self.list = QListView()
         self.list.setWindowTitle("Documents")
         self.list.setMinimumSize(300, 400)
         self.list.setSpacing(10)
-        self.model = QStandardItemModel(self.list)
-        self.resourcePdf = ResourcePdf()
 
         for root, dirs, files in os.walk("Documents"):
             for extensions in self.formats:
@@ -36,8 +38,6 @@ class Document:
                     self.docList.append(item)
 
         self.docLength = len(self.docList)
-        self.currentItem = 1
-        self.prevItem = self.docLength
         if len(self.docList) != 0:
             self.docList[0].setBackground(QColor(97, 138, 204))
         self.list.setModel(self.model)
@@ -53,17 +53,6 @@ class Document:
                 self.currentItem = self.currentItem + 1
             self.docList[self.prevItem - 1].setBackground(QColor(35, 38, 41))
             self.docList[self.currentItem - 1].setBackground(QColor(97, 138, 204))
-
-#    def previousItem(self):
-#        if len(self.docList) != 0:
-#            if self.currentItem == 1:
-#                self.prevItem = 1
-#                self.currentItem = self.docLength
-#            else:
-#                self.prevItem = self.currentItem
-#                self.currentItem = self.currentItem - 1
-#            self.docList[self.prevItem - 1].setBackground(QColor(35, 38, 41))
-#            self.docList[self.currentItem - 1].setBackground(QColor(97, 138, 204))
 
     def Open(self):
         if len(self.docList) != 0:

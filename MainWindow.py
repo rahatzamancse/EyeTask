@@ -58,8 +58,6 @@ class MainWindow(QMainWindow):
         # self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         # self.b = QtGui.QPushButton("exit", self, clicked=self.close)
 
-        self.resetButton.clicked.connect(self.resetAll)
-
         self.chair = WheelChair()
         self.chairSpeedSlider.sliderReleased.connect(self.setSpeed)
         
@@ -388,4 +386,3 @@ class MainWindow(QMainWindow):
             self.statusBar.showMessage("In subprocess mode")
         elif mode is MODE.MAIN:
             self.statusBar.showMessage("Please Select an option")
-            self.gaze_image_label.setText("Not using Eye gaze")

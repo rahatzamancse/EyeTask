@@ -3,7 +3,6 @@ import pyautogui
 
 
 class ResourcePdf:
-
     def Open(self, docName):
         file = "C:\\Users\\prant\\Desktop\\Final\\EyeTask\\Documents\\" + docName
         self.process = subprocess.Popen(["C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", file])

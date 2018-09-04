@@ -3,7 +3,6 @@ import pyautogui
 
 
 class ResourceBrowser:
-
     def Open(self, address):
         self.process = subprocess.Popen(["C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", address])
 

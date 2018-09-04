@@ -7,43 +7,43 @@ class WheelChair:
         port = 13000
         self.addr = (host, port)
         self.socket = socket(AF_INET, SOCK_DGRAM)
-        self.active = False
         self.fan = False
         self.light = False
+        self.state = "stop"
 
     def start(self):
-        print("WheelChair : start")
-        self.socket.sendto(bytes('start'.encode()), self.addr)
-        self.active = True
+        if self.state != "start":
+            print("WheelChair : start")
+            self.socket.sendto(bytes('start'.encode()), self.addr)
+            self.state = "start"
 
     def stop(self):
-        print("WheelChair : stop")
-        self.socket.sendto(bytes('stop'.encode()), self.addr)
-        self.active = False
-
-    def toggleStartStop(self):
-        if self.active:
+        if self.state != "stop":
             print("WheelChair : stop")
             self.socket.sendto(bytes('stop'.encode()), self.addr)
-            self.active = False
+            self.state = "stop"
+
+    def toggleStartStop(self):
+        if self.state != "stop":
+            print("WheelChair : stop")
+            self.socket.sendto(bytes('stop'.encode()), self.addr)
+            self.state = "stop"
         else:
             print("WheelChair : start")
             self.socket.sendto(bytes('start'.encode()), self.addr)
-            self.active = True
+            self.state = "start"
 
     def left(self):
-        if self.active:
+        if self.state != "left":
             print("WheelChair : left")
             self.socket.sendto(bytes('left'.encode()), self.addr)
-        else:
-            print("WheelChair is not active")
+            self.state = "left"
 
     def right(self):
-        if self.active:
+        if self.state != "right":
             print("WheelChair : right")
             self.socket.sendto(bytes('right'.encode()), self.addr)
-        else:
-            print("WheelChair is not active")
+            self.state = "right"
 
     def toggleFan(self):
         if self.fan:
@@ -54,7 +54,7 @@ class WheelChair:
             self.socket.sendto(bytes('fanOn'.encode()), self.addr)
 
     def toggleLight(self):
-        if self.fan:
+        if self.light:
             print("WheelChair : light Off")
             self.socket.sendto(bytes('lightOff'.encode()), self.addr)
         else:

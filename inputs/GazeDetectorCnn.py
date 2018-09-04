@@ -27,16 +27,13 @@ class GazeDetector:
         # cap = cv2.VideoCapture(0)
 
     def processImage(self, image):
-
         ret = {
-            "direction": None,
+            "gazedirection": None,
             "img": None,
-            "gaze": None
+            "gazeleft": None,
+            "gazeright": None,
+            "blink": "none"
         }
-
-        # a = datetime.datetime.now()
-        # ret, image = cap.read()
-
         faces = self.faceCascade.detectMultiScale(
             image,
             scaleFactor=1.05,
@@ -44,7 +41,6 @@ class GazeDetector:
             minSize=(100, 100),
             flags=cv2.CASCADE_SCALE_IMAGE
         )
-
         roi1 = None
         roi2 = None
 
@@ -58,17 +54,15 @@ class GazeDetector:
                                    for p in self.predictor(image, dlib_rect).parts()])
 
             landmarks_display_right = landmarks[self.RIGHT_EYE_POINTS + self.RIGHT_EYEBROW_POINTS]
-            for idx, point in enumerate(landmarks_display_right):
-                pos = (point[0, 0], point[0, 1])
-            #         cv2.circle(image, pos, 1, color=(0, 0, 255), thickness=-1)
+            # for idx, point in enumerate(landmarks_display_right):
+            #     pos = (point[0, 0], point[0, 1])
             (x, y, w, h) = cv2.boundingRect(landmarks_display_right)
             roi1 = image[y:y + h, x:x + w]
             roi1 = imutils.resize(roi1, width=250, height=250, inter=cv2.INTER_CUBIC)
 
             landmarks_display_left = landmarks[self.LEFT_EYE_POINTS + self.LEFT_EYEBROW_POINTS]
-            for idx, point in enumerate(landmarks_display_left):
-                pos = (point[0, 0], point[0, 1])
-            #         cv2.circle(image, pos, 1, color=(0, 0, 255), thickness=-1)
+            # for idx, point in enumerate(landmarks_display_left):
+            #     pos = (point[0, 0], point[0, 1])
             (x, y, w, h) = cv2.boundingRect(landmarks_display_left)
             roi2 = image[y:y + h, x:x + w]
             roi2 = imutils.resize(roi2, width=250, height=250, inter=cv2.INTER_CUBIC)
@@ -78,9 +72,8 @@ class GazeDetector:
             img = cv2.imread('temp_right.jpg')
             img = cv2.resize(img, (64, 64))
             img = np.reshape(img, [1, 64, 64, 3])
-            classes_r81 = self.model_right.predict_classes(img)
             classes_r82 = self.model_right.predict(img)
-            class_no = classes_r81.item(0)
+            roi1 = cv2.flip(roi1, 1)
             ret["gazeleft"] = roi1
 
         if roi2 is not None:
@@ -89,15 +82,14 @@ class GazeDetector:
             img = cv2.resize(img, (64, 64))
             img = np.reshape(img, [1, 64, 64, 3])
             classes_l81 = self.model_left.predict(img)
-            classes_l82 = self.model_left.predict(img)
-            class_no = classes_l81.item(0)
+            roi2 = cv2.flip(roi2, 1)
             ret["gazeright"] = roi2
 
+        image = cv2.flip(image, 1)
         ret["img"] = image
 
         if roi1 is not None or roi2 is not None:
             self.percent(classes_l81, classes_r82, ret)
-
         return ret
 
     def percent(self, values_left, values_right, ret):
@@ -128,8 +120,8 @@ class GazeDetector:
         y = (y_l + y_r) / 2
         z = (z_l + z_r) / 2
         b = (b_l + b_r) / 2
-        print("Prob of Class 0 is : ", x, "\nProb of Class 1 is : ", y, "\nProb of Class 2 is : ", z,
-              "\nProb of Class 3 is : ", b)
+        # print("Prob of Class 0 is : ", x, "\nProb of Class 1 is : ", y, "\nProb of Class 2 is : ", z,
+        #       "\nProb of Class 3 is : ", b)
 
         if x >= 0.80:
             cv2.putText(ret["img"], "Blink", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 155, thickness=3)
@@ -144,10 +136,12 @@ class GazeDetector:
             ret["blink"] = "none"
         if y >= 0.80:
             cv2.putText(ret["img"], "LEFT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
-            ret["gazedirection"] = "left"
+            ret["gazedirection"] = "gazeleft"
         elif z >= 0.80:
             cv2.putText(ret["img"], "Middle", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 130, thickness=3)
-            ret["gazedirection"] = "center"
+            ret["gazedirection"] = "gazecenter"
         elif b >= 0.80:
             cv2.putText(ret["img"], "RIGHT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=3)
-            ret["gazedirection"] = "right"
+            ret["gazedirection"] = "gazeright"
+        else:
+            ret["gazedirection"] = "gazenone"

@@ -21,12 +21,6 @@ class Speech:
             "wheel chair": [],
             "close": []
         }
-        # self.video = []
-        # self.sms = []
-        # self.music = []
-        # self.message = []
-        # self.light = []
-        # self.fan = []
 
     def recognize_speech_from_mic(self):
         with self.microphone as source:
@@ -54,7 +48,5 @@ class Speech:
             print(response["transcription"])
             for func in self.commands["stop"]:
                 func()
-            # for func in self.commands["close"]:
-            # func()
 
         return response

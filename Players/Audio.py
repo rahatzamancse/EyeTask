@@ -67,19 +67,6 @@ class Audio:
             self.mediaList[self.prevItem - 1].setBackground(QColor(35, 38, 41))
             self.mediaList[self.currentItem - 1].setBackground(QColor(97, 138, 204))
 
-#    def previousItem(self):
-#      if len(self.mediaList) != 0:
-#        if self.currentItem == 1:
-#            self.prevItem = 1
-#            self.currentItem = self.mediaLength
-#
-#        else:
-#            self.prevItem = self.currentItem
-#            self.currentItem = self.currentItem - 1
-#
-#        self.mediaList[self.prevItem - 1].setBackground(QColor(35, 38, 41))
-#        self.mediaList[self.currentItem - 1].setBackground(QColor(97, 138, 204))
-
     def play(self):
         print("Music Player : " + str(self.mediaList[self.currentItem - 1].text()))
         self.resourceMusic.playMusic(self.mediaList[self.currentItem - 1].text())
@@ -93,9 +80,6 @@ class Audio:
         if len(self.mediaList) != 0:
             self.resourceMusic.stopMusic()
             self.playing = False
-
-#    def resume(self):
-#        self.resourceMusic.resumeMusic()
 
     def Close(self):
         self.list.close()
