@@ -3,7 +3,7 @@ from socket import *
 
 class WheelChair:
     def __init__(self):
-        host = "192.168.0.14"  # set to IP address of target computer
+        host = "10.3.12.212"  # set to IP address of target computer
         port = 13000
         self.addr = (host, port)
         self.socket = socket(AF_INET, SOCK_DGRAM)

@@ -10,7 +10,7 @@ class ResourceMusic:
 
     def playMusic(self, musicName):
         self.stopMusic()
-        self.path = os.path.join("C:\\Users\\prant\\Desktop\\Final\\EyeTask\\MusicFiles", musicName)
+        self.path = os.path.join("F:\\1Study\\projects\\EyeTask\\MusicFiles", musicName)
         self.source = pyglet.media.load(self.path, streaming=False)
         self.player.queue(self.source)
         self.player.play()

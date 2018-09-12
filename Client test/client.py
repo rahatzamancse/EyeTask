@@ -3,7 +3,7 @@ from socket import *
 
 class WheelChair:
     def __init__(self):
-        host = "192.168.0.15"  # set to IP address of target computer
+        host = "10.3.12.212"  # set to IP address of target computer
         port = 13000
         self.addr = (host, port)
         self.socket = socket(AF_INET, SOCK_DGRAM)
@@ -77,15 +77,16 @@ class WheelChair:
 
 chair = WheelChair()
 chair.active = True
-command = input("Enter command : ")
-if command == "go":
-    chair.toggleStartStop()
-elif command == "left":
-    chair.left()
-elif command == "right":
-    chair.right()
-elif command == "light":
-    chair.toggleLight()
-elif command == "fan":
-    chair.toggleFan()
+while True:
+	command = input("Enter command : ")
+	if command == "go":
+		chair.toggleStartStop()
+	elif command == "left":
+		chair.left()
+	elif command == "right":
+		chair.right()
+	elif command == "light":
+		chair.toggleLight()
+	elif command == "fan":
+		chair.toggleFan()
 

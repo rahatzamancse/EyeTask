@@ -153,7 +153,9 @@ class MainWindow(QMainWindow):
                 self.document.scrollUp()
             elif command in ["blinkboth"]:
                 self.document.Close()
+                command = None
                 self.changeMode(MODE.NEWS)
+                
                 
         elif self.current_mode == MODE.BROWSER:
             if command in ["blinkright","headright"]:
@@ -162,6 +164,7 @@ class MainWindow(QMainWindow):
                 self.browser.scrollUp()
             elif command in ["blinkboth"]:
                 self.browser.Close()
+                command = None
                 self.changeMode(MODE.MAIN)
 
         elif self.current_mode is MODE.KEYBOARD:
@@ -206,7 +209,7 @@ class MainWindow(QMainWindow):
             import smtplib
             try:
                 fromaddr = 'eyegaze.kuet@gmail.com'
-                toaddr = 'sakibreza1@gmail.com'
+                toaddr = 'anik.kuet.cse15@gmail.com'
                 msg = MIMEMultipart()
                 msg['From'] = fromaddr
                 msg['To'] = toaddr

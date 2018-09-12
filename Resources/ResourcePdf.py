@@ -4,8 +4,8 @@ import pyautogui
 
 class ResourcePdf:
     def Open(self, docName):
-        file = "C:\\Users\\prant\\Desktop\\Final\\EyeTask\\Documents\\" + docName
-        self.process = subprocess.Popen(["C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", file])
+        file = "F:\\1Study\\projects\\EyeTask\\Documents\\" + docName
+        self.process = subprocess.Popen(["C:\\Program Files (x86)\\Adobe\\Acrobat Reader DC\\Reader\\AcroRd32.exe", file])
 
     def scrollDown(self):
         pyautogui.press('down')
